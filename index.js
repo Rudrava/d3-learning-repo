@@ -50,10 +50,13 @@ xAxisGroup
   // it rotated with text andchor
   .attr("text-anchor", "end");
 
+// TRANSITION change duration here to see the
+const barTransition = d3.transition().duration(1550);
+
 // UPDATE FUNCTION: takes updated or initian data
 const update = (data) => {
   // updating scale domains
-  y.domain([0, d3.max(data, (d) => d.orders)]);
+  y.domain([0, d3.max(data, (d) => d.orders) + 100]);
   x.domain(data.map((item) => item.name));
 
   // join data to rect
@@ -65,20 +68,32 @@ const update = (data) => {
   //update or init DOM selections
   rects
     .attr("width", x.bandwidth)
-    .attr("height", (d) => graphHeight - y(d.orders))
     .attr("fill", "orange")
     .attr("x", (d) => x(d.name))
-    .attr("y", (d) => y(d.orders));
+    // transition
+    .transition(barTransition)
+    // ending conditions for the rect[after transitions]
+    .attr("y", (d) => y(d.orders))
+    .attr("height", (d) => graphHeight - y(d.orders));
 
   // ENTER Selections
   rects
     .enter()
     .append("rect")
+    //starting conditions for the rect[before anim]
+    .attr("y", graphHeight)
+    .attr("height", 0)
     .attr("width", x.bandwidth)
-    .attr("height", (d) => graphHeight - y(d.orders))
     .attr("fill", "orange")
+    .attr("x", (d) => x(d.name))
+    // what the line below does is it merges the dom selection and enter selection and the
+    // code following it would be applied to both the selections
+    // transition
+    .transition(barTransition)
+    // ending conditions for the rect[after transitions]
+    .attrTween("width", widthTween)
     .attr("y", (d) => y(d.orders))
-    .attr("x", (d) => x(d.name));
+    .attr("height", (d) => graphHeight - y(d.orders));
 
   // call axes
   xAxisGroup.call(xAxis);
@@ -105,6 +120,7 @@ db.collection("dishes").onSnapshot((res) => {
   update(data);
 });
 
+// ==========CONCEPT============
 //   THE D3 UPDATE PATTERN
 // const update = (data) => {
 //   UPDATE ANY SCALE [DOMAIN] IF THEY RELY ON THE DATA
@@ -118,3 +134,22 @@ db.collection("dishes").onSnapshot((res) => {
 //   APPEND THE ENDTER SELECTION TO THE DOM
 // rects.enter().append("rect").attr(...etc)
 // };
+
+// ==========CONCEPT============
+// TRANSITIONS OR ANIMS
+
+// FOR OUR PARTICULAR BAR CHART
+
+// starting conditions
+// height = 0
+// y = graphHeight
+
+// ending conditions
+// height = graphHeight - y(d.orders)
+// y =  y(d.orders)
+
+const widthTween = (d) => {
+  // define interpolation
+  let inter = d3.interpolate(0, x.bandwidth());
+  return (t) => inter(t);
+};
